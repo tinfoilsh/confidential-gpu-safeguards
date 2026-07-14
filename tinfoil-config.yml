@@ -1,0 +1,149 @@
+cvm-version: 0.10.4
+cpus: 32
+memory: 131072
+gpus: 1
+
+networks:
+  guards: {}
+  nvidia:
+    egress: allowlist
+    allow:
+      - edge.urm.nvidia.com
+
+models:
+  - name: "lyraixguard"
+    repo: "Lyraix-AI/LyraixGuard-v0@811dcadf492ab80ba6f7b41284e9a3674caade6b"
+    mpk: "0000000000000000000000000000000000000000000000000000000000000000_0_00000000-0000-0000-0000-000000000000"
+  - name: "aprielguard"
+    repo: "ServiceNow-AI/AprielGuard@e7e936d158cf054e9f078580e432a477bfdd5436"
+    mpk: "0000000000000000000000000000000000000000000000000000000000000000_0_00000000-0000-0000-0000-000000000000"
+  - name: "qwen3guard-stream"
+    repo: "Qwen/Qwen3Guard-Stream-8B@f14fba01154127167c77c0e9f80536cec56e7b69"
+    mpk: "0000000000000000000000000000000000000000000000000000000000000000_0_00000000-0000-0000-0000-000000000000"
+
+containers:
+  - name: "router"
+    image: "ghcr.io/tinfoilsh/confidential-gpu-safeguards@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    restart: always
+    env:
+      - LISTEN_ADDR: ":8080"
+      - LYRAIXGUARD_URL: "http://lyraixguard:8001"
+      - APRIELGUARD_URL: "http://aprielguard:8002"
+      - QWEN3GUARD_URL: "http://qwen3guard:8003"
+    networks: ["guards"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 1m
+
+  - name: "lyraixguard"
+    image: "vllm/vllm-openai:v0.23.0-ubuntu2404@sha256:662e4975c5c9947f8723f4d8f438145971361a480a2ade1919bb9462a9f24088"
+    runtime: nvidia
+    gpus: all
+    restart: always
+    env:
+      - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+    entrypoint: ["vllm", "serve"]
+    command:
+      [
+        "--model",
+        "/tinfoil/mpk/mpk-0000000000000000000000000000000000000000000000000000000000000000",
+        "--served-model-name",
+        "lyraixguard",
+        "--gpu-memory-utilization",
+        "0.30",
+        "--max-model-len",
+        "32768",
+        "--max-num-seqs",
+        "16",
+        "--scheduling-policy",
+        "priority",
+        "--port",
+        "8001",
+        "--host",
+        "0.0.0.0",
+      ]
+    tmpfs:
+      /tmp: size=512m,mode=1777,exec
+      /root: size=2g,mode=0700,exec
+      /usr/local/lib/python3.12/dist-packages/flashinfer_cubin/cubins: size=2g,mode=1777,exec
+    networks: ["guards", "nvidia"]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10m
+
+  - name: "aprielguard"
+    image: "vllm/vllm-openai:v0.23.0-ubuntu2404@sha256:662e4975c5c9947f8723f4d8f438145971361a480a2ade1919bb9462a9f24088"
+    runtime: nvidia
+    gpus: all
+    restart: always
+    env:
+      - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+    entrypoint: ["vllm", "serve"]
+    command:
+      [
+        "--model",
+        "/tinfoil/mpk/mpk-0000000000000000000000000000000000000000000000000000000000000000",
+        "--served-model-name",
+        "aprielguard",
+        "--gpu-memory-utilization",
+        "0.40",
+        "--max-model-len",
+        "32768",
+        "--max-num-seqs",
+        "16",
+        "--scheduling-policy",
+        "priority",
+        "--port",
+        "8002",
+        "--host",
+        "0.0.0.0",
+      ]
+    tmpfs:
+      /tmp: size=512m,mode=1777,exec
+      /root: size=2g,mode=0700,exec
+      /usr/local/lib/python3.12/dist-packages/flashinfer_cubin/cubins: size=2g,mode=1777,exec
+    networks: ["guards", "nvidia"]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10m
+
+  - name: "qwen3guard"
+    image: "ghcr.io/tinfoilsh/confidential-gpu-safeguards-guard@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    runtime: nvidia
+    gpus: all
+    restart: always
+    env:
+      - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+      - MODEL_PATH: "/tinfoil/mpk/mpk-0000000000000000000000000000000000000000000000000000000000000000"
+      - HF_HUB_OFFLINE: "1"
+      - TRANSFORMERS_OFFLINE: "1"
+    command: ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8003"]
+    tmpfs:
+      /tmp: size=512m,mode=1777,exec
+      /root: size=2g,mode=0700,exec
+    networks: ["guards"]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5m
+
+shim:
+  upstream-port: 8080
+  authenticated: true
+  authenticated-endpoints:
+    - /lyraixguard/v1/chat/completions
+    - /aprielguard/v1/chat/completions
+    - /qwen3guard/moderate
+  paths:
+    - /health
+    - /models
+    - /lyraixguard/v1/chat/completions
+    - /aprielguard/v1/chat/completions
+    - /qwen3guard/moderate
