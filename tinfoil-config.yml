@@ -23,7 +23,7 @@ models:
 
 containers:
   - name: "router"
-    image: "ghcr.io/tinfoilsh/confidential-gpu-safeguards@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    image: "ghcr.io/tinfoilsh/confidential-gpu-safeguards@sha256:75760850554e8eaea25661e71e798f520edd2cce2e9a874f02b5d512a4cd8684" # v0.0.1
     restart: always
     env:
       - LISTEN_ADDR: ":8080"
@@ -114,7 +114,7 @@ containers:
       start_period: 10m
 
   - name: "qwen3guard"
-    image: "ghcr.io/tinfoilsh/confidential-gpu-safeguards-guard@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    image: "ghcr.io/tinfoilsh/confidential-gpu-safeguards-guard@sha256:5809c6262121cf5d5866824717d6c155f5df3324c31bcf96d354450d64e301cb" # v0.0.1
     runtime: nvidia
     gpus: all
     restart: always
