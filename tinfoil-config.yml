@@ -38,12 +38,15 @@ containers:
       start_period: 1m
 
   - name: "lyraixguard"
-    image: "vllm/vllm-openai:v0.23.0-ubuntu2404@sha256:662e4975c5c9947f8723f4d8f438145971361a480a2ade1919bb9462a9f24088"
+    image: "vllm/vllm-openai:v0.25.1@sha256:f0b9a0dc75a9fca3b6811e3279367b2d6a448055a000bfd13859587d74cef268"
     runtime: nvidia
     gpus: all
     restart: always
     env:
       - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+      # v0.23 corrupts output on B300 regardless of attention backend; v0.25.1
+      # V1 runner + TRITON_ATTN is the org-validated combination (see gemma4).
+      - VLLM_USE_V2_MODEL_RUNNER: "0"
     entrypoint: ["vllm", "serve"]
     command:
       [
@@ -51,6 +54,8 @@ containers:
         "/tinfoil/mpk/mpk-99b08cf757dbc6705dc1221510d25f6dfdbdaf51b801093bd937d2bc0d394f31",
         "--served-model-name",
         "lyraixguard",
+        "--attention-backend",
+        "TRITON_ATTN",
         "--gpu-memory-utilization",
         "0.30",
         "--max-model-len",
@@ -76,12 +81,15 @@ containers:
       start_period: 10m
 
   - name: "aprielguard"
-    image: "vllm/vllm-openai:v0.23.0-ubuntu2404@sha256:662e4975c5c9947f8723f4d8f438145971361a480a2ade1919bb9462a9f24088"
+    image: "vllm/vllm-openai:v0.25.1@sha256:f0b9a0dc75a9fca3b6811e3279367b2d6a448055a000bfd13859587d74cef268"
     runtime: nvidia
     gpus: all
     restart: always
     env:
       - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+      # v0.23 corrupts output on B300 regardless of attention backend; v0.25.1
+      # V1 runner + TRITON_ATTN is the org-validated combination (see gemma4).
+      - VLLM_USE_V2_MODEL_RUNNER: "0"
     entrypoint: ["vllm", "serve"]
     command:
       [
@@ -89,6 +97,8 @@ containers:
         "/tinfoil/mpk/mpk-4e1e2ee066a2fa44731bd770524f3a9d5b2078a183f00f43281d95028dcd18bb",
         "--served-model-name",
         "aprielguard",
+        "--attention-backend",
+        "TRITON_ATTN",
         "--gpu-memory-utilization",
         "0.40",
         "--max-model-len",
