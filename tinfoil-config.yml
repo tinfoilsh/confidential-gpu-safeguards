@@ -13,13 +13,13 @@ networks:
 models:
   - name: "lyraixguard"
     repo: "Lyraix-AI/LyraixGuard-v0@811dcadf492ab80ba6f7b41284e9a3674caade6b"
-    mpk: "0000000000000000000000000000000000000000000000000000000000000000_0_00000000-0000-0000-0000-000000000000"
+    mpk: "99b08cf757dbc6705dc1221510d25f6dfdbdaf51b801093bd937d2bc0d394f31_8056471552_3cc6b135-1c38-5978-a04a-fce61734a6bf"
   - name: "aprielguard"
     repo: "ServiceNow-AI/AprielGuard@e7e936d158cf054e9f078580e432a477bfdd5436"
-    mpk: "0000000000000000000000000000000000000000000000000000000000000000_0_00000000-0000-0000-0000-000000000000"
+    mpk: "4e1e2ee066a2fa44731bd770524f3a9d5b2078a183f00f43281d95028dcd18bb_15789445120_73ef2f79-2f4d-5add-8916-cb8e7de086fa"
   - name: "qwen3guard-stream"
     repo: "Qwen/Qwen3Guard-Stream-8B@f14fba01154127167c77c0e9f80536cec56e7b69"
-    mpk: "0000000000000000000000000000000000000000000000000000000000000000_0_00000000-0000-0000-0000-000000000000"
+    mpk: "c2a73efbc772c53cda3c83277f4d3850843f7d9abe6bbebc80ccde681867319b_15161868288_a4146969-0622-57fc-9671-e986ae8a3cf3"
 
 containers:
   - name: "router"
@@ -48,7 +48,7 @@ containers:
     command:
       [
         "--model",
-        "/tinfoil/mpk/mpk-0000000000000000000000000000000000000000000000000000000000000000",
+        "/tinfoil/mpk/mpk-99b08cf757dbc6705dc1221510d25f6dfdbdaf51b801093bd937d2bc0d394f31",
         "--served-model-name",
         "lyraixguard",
         "--gpu-memory-utilization",
@@ -86,7 +86,7 @@ containers:
     command:
       [
         "--model",
-        "/tinfoil/mpk/mpk-0000000000000000000000000000000000000000000000000000000000000000",
+        "/tinfoil/mpk/mpk-4e1e2ee066a2fa44731bd770524f3a9d5b2078a183f00f43281d95028dcd18bb",
         "--served-model-name",
         "aprielguard",
         "--gpu-memory-utilization",
@@ -120,7 +120,7 @@ containers:
     restart: always
     env:
       - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
-      - MODEL_PATH: "/tinfoil/mpk/mpk-0000000000000000000000000000000000000000000000000000000000000000"
+      - MODEL_PATH: "/tinfoil/mpk/mpk-c2a73efbc772c53cda3c83277f4d3850843f7d9abe6bbebc80ccde681867319b"
       - HF_HUB_OFFLINE: "1"
       - TRANSFORMERS_OFFLINE: "1"
     command: ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8003"]
