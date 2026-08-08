@@ -1,6 +1,6 @@
 cvm-version: 0.10.4
 cpus: 32
-memory: 524288
+memory: 262144
 gpus: 1
 
 networks:
@@ -22,7 +22,7 @@ models:
     mpk: "c2a73efbc772c53cda3c83277f4d3850843f7d9abe6bbebc80ccde681867319b_15161868288_a4146969-0622-57fc-9671-e986ae8a3cf3"
   - name: "shieldstral"
     repo: "mistralai/Shieldstral-1.0-3B@003ec7e2b0bab5f0e6307edbaf186fa5822b76f5"
-    mpk: "0000000000000000000000000000000000000000000000000000000000000000_0_00000000-0000-0000-0000-000000000000"
+    mpk: "8a8beba3e49d11779b4effb56606596b10fc444cd68931ccbc15feebd774a260_15429869568_f9eeafe9-0fb8-5e4b-8aed-2de4de44ed91"
 
 containers:
   - name: "router"
@@ -127,7 +127,7 @@ containers:
     entrypoint: ["vllm", "serve"]
     command: [
         "--model",
-        "/tinfoil/mpk/mpk-0000000000000000000000000000000000000000000000000000000000000000",
+        "/tinfoil/mpk/mpk-8a8beba3e49d11779b4effb56606596b10fc444cd68931ccbc15feebd774a260",
         "--served-model-name",
         "shieldstral",
         # The repo ships both HF and consolidated weights; mistral format picks
