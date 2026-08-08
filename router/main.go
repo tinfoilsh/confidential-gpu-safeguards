@@ -1,10 +1,11 @@
 // Package main implements the Tinfoil GPU safeguards reverse proxy.
 //
-// Three GPU guard backends share a single B300 behind this router:
+// Four GPU guard backends share a single GPU behind this router:
 //
 //	/lyraixguard/*  -> LyraixGuard       (vLLM, Qwen3-based, /v1/chat/completions)
 //	/aprielguard/*  -> AprielGuard       (vLLM, Mistral-based, /v1/chat/completions)
 //	/qwen3guard/*   -> Qwen3Guard-Stream (custom transformers server, /moderate)
+//	/shieldstral/*  -> Shieldstral       (vLLM, Ministral-based, /v1/chat/completions)
 //
 // The router strips the path prefix and proxies to each backend's native API.
 // /health and /models are served by the router itself.
@@ -30,18 +31,20 @@ type backend struct {
 }
 
 type config struct {
-	listenAddr    string
-	lyraixURL     string
-	aprielURL     string
-	qwen3guardURL string
+	listenAddr     string
+	lyraixURL      string
+	aprielURL      string
+	qwen3guardURL  string
+	shieldstralURL string
 }
 
 func main() {
 	cfg := config{
-		listenAddr:    getenvDefault("LISTEN_ADDR", ":8080"),
-		lyraixURL:     getenvDefault("LYRAIXGUARD_URL", "http://127.0.0.1:8001"),
-		aprielURL:     getenvDefault("APRIELGUARD_URL", "http://127.0.0.1:8002"),
-		qwen3guardURL: getenvDefault("QWEN3GUARD_URL", "http://127.0.0.1:8003"),
+		listenAddr:     getenvDefault("LISTEN_ADDR", ":8080"),
+		lyraixURL:      getenvDefault("LYRAIXGUARD_URL", "http://127.0.0.1:8001"),
+		aprielURL:      getenvDefault("APRIELGUARD_URL", "http://127.0.0.1:8002"),
+		qwen3guardURL:  getenvDefault("QWEN3GUARD_URL", "http://127.0.0.1:8003"),
+		shieldstralURL: getenvDefault("SHIELDSTRAL_URL", "http://127.0.0.1:8004"),
 	}
 
 	handler, err := newHandler(cfg)
@@ -59,6 +62,7 @@ func main() {
 	log.Printf("backend lyraixguard -> %s", cfg.lyraixURL)
 	log.Printf("backend aprielguard -> %s", cfg.aprielURL)
 	log.Printf("backend qwen3guard  -> %s", cfg.qwen3guardURL)
+	log.Printf("backend shieldstral -> %s", cfg.shieldstralURL)
 
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("server failed: %v", err)
@@ -101,6 +105,7 @@ func buildBackends(cfg config) ([]*backend, error) {
 		{name: "lyraixguard", prefix: "/lyraixguard", raw: cfg.lyraixURL},
 		{name: "aprielguard", prefix: "/aprielguard", raw: cfg.aprielURL},
 		{name: "qwen3guard", prefix: "/qwen3guard", raw: cfg.qwen3guardURL},
+		{name: "shieldstral", prefix: "/shieldstral", raw: cfg.shieldstralURL},
 	}
 
 	backends := make([]*backend, 0, len(specs))
