@@ -20,6 +20,9 @@ models:
   - name: "qwen3guard-stream"
     repo: "Qwen/Qwen3Guard-Stream-8B@f14fba01154127167c77c0e9f80536cec56e7b69"
     mpk: "c2a73efbc772c53cda3c83277f4d3850843f7d9abe6bbebc80ccde681867319b_15161868288_a4146969-0622-57fc-9671-e986ae8a3cf3"
+  - name: "shieldstral"
+    repo: "mistralai/Shieldstral-1.0-3B@003ec7e2b0bab5f0e6307edbaf186fa5822b76f5"
+    mpk: "0000000000000000000000000000000000000000000000000000000000000000_0_00000000-0000-0000-0000-000000000000"
 
 containers:
   - name: "router"
@@ -30,6 +33,7 @@ containers:
       - LYRAIXGUARD_URL: "http://lyraixguard:8001"
       - APRIELGUARD_URL: "http://aprielguard:8002"
       - QWEN3GUARD_URL: "http://qwen3guard:8003"
+      - SHIELDSTRAL_URL: "http://shieldstral:8004"
     networks: ["guards"]
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
@@ -38,15 +42,12 @@ containers:
       start_period: 1m
 
   - name: "lyraixguard"
-    image: "vllm/vllm-openai:v0.25.1@sha256:f0b9a0dc75a9fca3b6811e3279367b2d6a448055a000bfd13859587d74cef268"
+    image: "vllm/vllm-openai:v0.26.0@sha256:ffb2d59b1c059a5bd8d781320c9f5189de8293693b7d95da54befddaa54abf52"
     runtime: nvidia
     gpus: all
     restart: always
     env:
       - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
-      # v0.23 corrupts output on B300 regardless of attention backend; v0.25.1
-      # V1 runner + TRITON_ATTN is the org-validated combination (see gemma4).
-      - VLLM_USE_V2_MODEL_RUNNER: "0"
     entrypoint: ["vllm", "serve"]
     command:
       [
@@ -54,8 +55,6 @@ containers:
         "/tinfoil/mpk/mpk-99b08cf757dbc6705dc1221510d25f6dfdbdaf51b801093bd937d2bc0d394f31",
         "--served-model-name",
         "lyraixguard",
-        "--attention-backend",
-        "TRITON_ATTN",
         "--gpu-memory-utilization",
         "0.30",
         "--max-model-len",
@@ -81,15 +80,12 @@ containers:
       start_period: 10m
 
   - name: "aprielguard"
-    image: "vllm/vllm-openai:v0.25.1@sha256:f0b9a0dc75a9fca3b6811e3279367b2d6a448055a000bfd13859587d74cef268"
+    image: "vllm/vllm-openai:v0.26.0@sha256:ffb2d59b1c059a5bd8d781320c9f5189de8293693b7d95da54befddaa54abf52"
     runtime: nvidia
     gpus: all
     restart: always
     env:
       - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
-      # v0.23 corrupts output on B300 regardless of attention backend; v0.25.1
-      # V1 runner + TRITON_ATTN is the org-validated combination (see gemma4).
-      - VLLM_USE_V2_MODEL_RUNNER: "0"
     entrypoint: ["vllm", "serve"]
     command:
       [
@@ -97,8 +93,6 @@ containers:
         "/tinfoil/mpk/mpk-4e1e2ee066a2fa44731bd770524f3a9d5b2078a183f00f43281d95028dcd18bb",
         "--served-model-name",
         "aprielguard",
-        "--attention-backend",
-        "TRITON_ATTN",
         "--gpu-memory-utilization",
         "0.40",
         "--max-model-len",
@@ -119,6 +113,51 @@ containers:
     networks: ["guards", "nvidia"]
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10m
+
+  - name: "shieldstral"
+    image: "vllm/vllm-openai:v0.26.0@sha256:ffb2d59b1c059a5bd8d781320c9f5189de8293693b7d95da54befddaa54abf52"
+    runtime: nvidia
+    gpus: all
+    restart: always
+    env:
+      - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+    entrypoint: ["vllm", "serve"]
+    command: [
+        "--model",
+        "/tinfoil/mpk/mpk-0000000000000000000000000000000000000000000000000000000000000000",
+        "--served-model-name",
+        "shieldstral",
+        # The repo ships both HF and consolidated weights; mistral format picks
+        # the consolidated ones unambiguously (same as voxtral).
+        "--tokenizer-mode",
+        "mistral",
+        "--config-format",
+        "mistral",
+        "--load-format",
+        "mistral",
+        "--gpu-memory-utilization",
+        "0.10",
+        "--max-model-len",
+        "32768",
+        "--max-num-seqs",
+        "16",
+        "--scheduling-policy",
+        "priority",
+        "--port",
+        "8004",
+        "--host",
+        "0.0.0.0",
+      ]
+    tmpfs:
+      /tmp: size=512m,mode=1777,exec
+      /root: size=2g,mode=0700,exec
+      /usr/local/lib/python3.12/dist-packages/flashinfer_cubin/cubins: size=2g,mode=1777,exec
+    networks: ["guards", "nvidia"]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8004/health"]
       interval: 30s
       timeout: 5s
       start_period: 10m
@@ -151,9 +190,11 @@ shim:
     - /lyraixguard/v1/chat/completions
     - /aprielguard/v1/chat/completions
     - /qwen3guard/moderate
+    - /shieldstral/v1/chat/completions
   paths:
     - /health
     - /models
     - /lyraixguard/v1/chat/completions
     - /aprielguard/v1/chat/completions
     - /qwen3guard/moderate
+    - /shieldstral/v1/chat/completions
