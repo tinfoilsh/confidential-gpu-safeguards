@@ -84,13 +84,14 @@ cd qwen3guard && docker build -t qwen3guard .
 
 The current config targets a 1×B200 (TDX) host; it should also run unchanged on H200. It previously ran on a B300, which needed extra workarounds (reverted since):
 
-| Config                         | B200/H200 (current)                  | On B300                                                  |
-| ------------------------------ | ------------------------------------ | -------------------------------------------------------- |
-| `cpus` / `memory`              | 32 / 262144 (`large_1d_new`)         | 32 / 524288 (`extra_large_1d_b300_new`)                  |
-| vLLM image                     | `v0.26.0`, default attention backend | `v0.25.1` + `VLLM_USE_V2_MODEL_RUNNER=0` + `TRITON_ATTN` |
-| cubins tmpfs + `nvidia` egress | on all vLLM guards                   | Keep                                                     |
+| Config                         | B200/H200 (current)                                      | On B300                                                  |
+| ------------------------------ | -------------------------------------------------------- | -------------------------------------------------------- |
+| `cpus` / `memory`              | 32 / 262144 (`large_1d_new`)                             | 32 / 524288 (`extra_large_1d_b300_new`)                  |
+| vLLM image                     | `v0.26.0` + `VLLM_USE_V2_MODEL_RUNNER=0` + `TRITON_ATTN` | `v0.25.1` + `VLLM_USE_V2_MODEL_RUNNER=0` + `TRITON_ATTN` |
+| cubins tmpfs + `nvidia` egress | on all vLLM guards                                       | Keep                                                     |
 
 - **VM shape**: `cpus`/`memory` must exactly match a published shape in [hardware-measurements](https://github.com/tinfoilsh/hardware-measurements), or clients fail attestation with "no matching hardware platform found". 32cpu/512G exists for both B300 (`extra_large_1d_b300_new`) and non-B300 (`extra_large_1d_new`) hosts. The stack peaks at ~55G RAM during model load, so 32 / 262144 (`large_1d_new`) would also fit — don't use the 64G medium shape.
-- **vLLM version/backend**: vLLM v0.23 silently produces corrupted output on B300 (sm_103) regardless of attention backend; v0.22 crashes outright. v0.25.1 V1 + Triton is the org-validated B300 combo (same as gemma4); re-apply it if moving back to B300. On B200/H200 stock v0.26.0 with the default attention backend is fine (and Shieldstral's model card requires vLLM >= 0.26.0).
+- **vLLM backend under CC**: vLLM's default attention backend silently corrupts output under confidential compute on every GPU tested — not just B300 (v0.23 on B300 sm*103; v0.26.0 defaults on H200/inf12 produced degenerate repetition loops and near-uniform yes/no logits, 2026-08-07). `VLLM_USE_V2_MODEL_RUNNER=0` + `--attention-backend TRITON_ATTN` is the org-validated CC combination (gemma4 uses the same, plus `VLLM_CC*\*` patches on a custom image). Verify output quality — not just health — whenever changing the vLLM version or backend.
+- **vLLM version**: v0.26.0 is the minimum required by Shieldstral's model card. v0.22/v0.23 are known-broken (crash / corruption).
 
 GPU-independent (don't touch when changing hardware): the qwen3guard `transformers==4.55.0` pin (the model's `trust_remote_code` code breaks under the transformers v5 bundled in the vLLM base image), the router, and the shim config.

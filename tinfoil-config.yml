@@ -48,6 +48,11 @@ containers:
     restart: always
     env:
       - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+      # vLLM's default attention backend silently corrupts output under
+      # confidential compute (v0.23 on B300, v0.26.0 on H200/inf12 — degenerate
+      # loops, near-uniform logits). V1 runner + TRITON_ATTN is the
+      # org-validated CC combination (see gemma4).
+      - VLLM_USE_V2_MODEL_RUNNER: "0"
     entrypoint: ["vllm", "serve"]
     command:
       [
@@ -55,6 +60,8 @@ containers:
         "/tinfoil/mpk/mpk-99b08cf757dbc6705dc1221510d25f6dfdbdaf51b801093bd937d2bc0d394f31",
         "--served-model-name",
         "lyraixguard",
+        "--attention-backend",
+        "TRITON_ATTN",
         "--gpu-memory-utilization",
         "0.30",
         "--max-model-len",
@@ -86,6 +93,11 @@ containers:
     restart: always
     env:
       - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+      # vLLM's default attention backend silently corrupts output under
+      # confidential compute (v0.23 on B300, v0.26.0 on H200/inf12 — degenerate
+      # loops, near-uniform logits). V1 runner + TRITON_ATTN is the
+      # org-validated CC combination (see gemma4).
+      - VLLM_USE_V2_MODEL_RUNNER: "0"
     entrypoint: ["vllm", "serve"]
     command:
       [
@@ -93,6 +105,8 @@ containers:
         "/tinfoil/mpk/mpk-4e1e2ee066a2fa44731bd770524f3a9d5b2078a183f00f43281d95028dcd18bb",
         "--served-model-name",
         "aprielguard",
+        "--attention-backend",
+        "TRITON_ATTN",
         "--gpu-memory-utilization",
         "0.40",
         "--max-model-len",
@@ -124,6 +138,11 @@ containers:
     restart: always
     env:
       - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+      # vLLM's default attention backend silently corrupts output under
+      # confidential compute (v0.23 on B300, v0.26.0 on H200/inf12 — degenerate
+      # loops, near-uniform logits). V1 runner + TRITON_ATTN is the
+      # org-validated CC combination (see gemma4).
+      - VLLM_USE_V2_MODEL_RUNNER: "0"
     entrypoint: ["vllm", "serve"]
     command: [
         "--model",
@@ -138,6 +157,8 @@ containers:
         "mistral",
         "--load-format",
         "mistral",
+        "--attention-backend",
+        "TRITON_ATTN",
         "--gpu-memory-utilization",
         "0.10",
         "--max-model-len",
