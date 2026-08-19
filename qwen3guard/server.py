@@ -28,7 +28,7 @@ from starlette.concurrency import run_in_threadpool
 log = logging.getLogger("qwen3guard")
 logging.basicConfig(level=logging.INFO)
 
-MODEL_PATH = os.environ.get("MODEL_PATH", "/tinfoil/mpk/qwen3guard-stream")
+MODEL_PATH = os.environ.get("MODEL_PATH", "/tinfoil/models/qwen3guard-stream")
 
 _model = None
 _tokenizer = None
