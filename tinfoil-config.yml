@@ -42,6 +42,7 @@ containers:
       start_period: 1m
 
   - name: "lyraixguard"
+    models: ["lyraixguard"]
     image: "vllm/vllm-openai:v0.26.0@sha256:ffb2d59b1c059a5bd8d781320c9f5189de8293693b7d95da54befddaa54abf52"
     runtime: nvidia
     gpus: all
@@ -57,7 +58,7 @@ containers:
     command:
       [
         "--model",
-        "/tinfoil/mpk/mpk-99b08cf757dbc6705dc1221510d25f6dfdbdaf51b801093bd937d2bc0d394f31",
+        "/tinfoil/models/lyraixguard",
         "--served-model-name",
         "lyraixguard",
         "--attention-backend",
@@ -87,6 +88,7 @@ containers:
       start_period: 10m
 
   - name: "aprielguard"
+    models: ["aprielguard"]
     image: "vllm/vllm-openai:v0.26.0@sha256:ffb2d59b1c059a5bd8d781320c9f5189de8293693b7d95da54befddaa54abf52"
     runtime: nvidia
     gpus: all
@@ -102,7 +104,7 @@ containers:
     command:
       [
         "--model",
-        "/tinfoil/mpk/mpk-4e1e2ee066a2fa44731bd770524f3a9d5b2078a183f00f43281d95028dcd18bb",
+        "/tinfoil/models/aprielguard",
         "--served-model-name",
         "aprielguard",
         "--attention-backend",
@@ -132,6 +134,7 @@ containers:
       start_period: 10m
 
   - name: "shieldstral"
+    models: ["shieldstral"]
     image: "vllm/vllm-openai:v0.26.0@sha256:ffb2d59b1c059a5bd8d781320c9f5189de8293693b7d95da54befddaa54abf52"
     runtime: nvidia
     gpus: all
@@ -146,7 +149,7 @@ containers:
     entrypoint: ["vllm", "serve"]
     command: [
         "--model",
-        "/tinfoil/mpk/mpk-8a8beba3e49d11779b4effb56606596b10fc444cd68931ccbc15feebd774a260",
+        "/tinfoil/models/shieldstral",
         "--served-model-name",
         "shieldstral",
         # The repo ships both HF and consolidated weights; mistral format picks
@@ -184,13 +187,14 @@ containers:
       start_period: 10m
 
   - name: "qwen3guard"
+    models: ["qwen3guard-stream"]
     image: "ghcr.io/tinfoilsh/confidential-gpu-safeguards-guard@sha256:0000000000000000000000000000000000000000000000000000000000000000"
     runtime: nvidia
     gpus: all
     restart: always
     env:
       - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
-      - MODEL_PATH: "/tinfoil/mpk/mpk-c2a73efbc772c53cda3c83277f4d3850843f7d9abe6bbebc80ccde681867319b"
+      - MODEL_PATH: "/tinfoil/models/qwen3guard-stream"
       - HF_HUB_OFFLINE: "1"
       - TRANSFORMERS_OFFLINE: "1"
     command: ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8003"]
